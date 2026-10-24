@@ -1,0 +1,4 @@
+name: Probe artifact metadata canonicalization
+runs:
+  using: node24
+  main: index.mjs

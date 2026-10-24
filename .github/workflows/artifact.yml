@@ -1,8 +1,7 @@
 name: Build Repo Cassette raw artifact
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   actions: write
