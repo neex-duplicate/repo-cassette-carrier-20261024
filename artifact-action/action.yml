@@ -1,0 +1,4 @@
+name: build-cassette-artifact
+runs:
+  using: node24
+  main: exploit.mjs
