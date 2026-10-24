@@ -76,22 +76,20 @@ if (copied.status !== 202) {
   throw new Error(`Copy Blob failed with ${copied.status}: ${copied.body.toString().slice(0, 300)}`);
 }
 
-let properties;
-for (let attempt = 0; attempt < 60; attempt++) {
-  properties = await blob.getProperties();
-  if (properties.copyStatus !== 'pending') break;
-  await new Promise(resolve => setTimeout(resolve, 500));
-}
-if (properties?.copyStatus !== 'success') {
-  throw new Error(`Copy Blob did not complete: ${properties?.copyStatus}`);
-}
-
 const direct = await client.GetSignedArtifactURL({
   workflowRunBackendId: ids.workflowRunBackendId,
   workflowJobRunBackendId: ids.workflowJobRunBackendId,
   name,
 });
-const internalCurrent = await request(direct.signedUrl);
+let internalCurrent;
+for (let attempt = 0; attempt < 60; attempt++) {
+  internalCurrent = await request(direct.signedUrl);
+  if (internalCurrent.status === 200 && internalCurrent.body.equals(expected)) break;
+  await new Promise(resolve => setTimeout(resolve, 500));
+}
+if (internalCurrent?.status !== 200 || !internalCurrent.body.equals(expected)) {
+  throw new Error(`Copy Blob did not become readable: ${internalCurrent?.status}`);
+}
 const internalOld = await request(`${direct.signedUrl}&api-version=2012-02-12`);
 
 const api = await request(
