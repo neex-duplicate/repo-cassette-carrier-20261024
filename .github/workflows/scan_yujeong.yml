@@ -1,0 +1,20 @@
+name: Scan solve-correlated artifact pool
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: node scan-yujeong/index.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
