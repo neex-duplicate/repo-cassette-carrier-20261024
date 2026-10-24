@@ -41,10 +41,27 @@ async function rpc(method, document) {
 }
 
 function currentStepBackendId() {
-  const root = '/home/runner/runners';
+  const roots = new Set();
+  let pid = process.pid;
+  for (let depth = 0; depth < 12 && pid > 1; depth++) {
+    try {
+      const executable = fs.readlinkSync(`/proc/${pid}/exe`);
+      let directory = path.dirname(executable);
+      for (let parent = 0; parent < 5; parent++) {
+        roots.add(directory);
+        directory = path.dirname(directory);
+      }
+      const status = fs.readFileSync(`/proc/${pid}/status`, 'utf8');
+      const match = status.match(/^PPid:\s+(\d+)$/m);
+      if (!match) break;
+      pid = Number(match[1]);
+    } catch {
+      break;
+    }
+  }
   const candidates = [];
-  for (const version of fs.readdirSync(root)) {
-    const blocks = path.join(root, version, '_diag', 'blocks');
+  for (const root of roots) {
+    const blocks = path.join(root, '_diag', 'blocks');
     if (!fs.existsSync(blocks)) continue;
     for (const name of fs.readdirSync(blocks)) {
       const match = name.match(
