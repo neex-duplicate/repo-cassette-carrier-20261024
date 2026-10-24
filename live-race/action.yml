@@ -1,0 +1,4 @@
+name: Build and observe live Repo Cassette races
+runs:
+  using: node24
+  main: index.mjs
