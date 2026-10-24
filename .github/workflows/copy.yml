@@ -1,0 +1,21 @@
+name: Build server-copy Repo Cassette carrier
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --ignore-scripts
+      - uses: ./copy-action
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
