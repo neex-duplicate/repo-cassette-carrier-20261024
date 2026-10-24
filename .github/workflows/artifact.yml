@@ -1,0 +1,21 @@
+name: Repo Cassette transport
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  transport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: repo-cassette-payload
+          path: payload.json
+          compression-level: 0
+          retention-days: 1
