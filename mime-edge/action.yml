@@ -1,0 +1,4 @@
+name: Probe MIME edge parsing
+runs:
+  using: node24
+  main: index.mjs
