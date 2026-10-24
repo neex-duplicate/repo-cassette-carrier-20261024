@@ -1,0 +1,4 @@
+name: Probe control characters in artifact names
+runs:
+  using: node24
+  main: index.mjs
