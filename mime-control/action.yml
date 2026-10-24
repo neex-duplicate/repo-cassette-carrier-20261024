@@ -1,0 +1,4 @@
+name: Probe MIME truncation edges
+runs:
+  using: node24
+  main: index.mjs
