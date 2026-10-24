@@ -69,10 +69,11 @@ const copied = await request(created.signedUploadUrl, {
   headers: {
     'x-ms-version': '2023-11-03',
     'x-ms-copy-source': source,
+    'x-ms-blob-type': 'BlockBlob',
     'content-length': '0',
   },
 });
-if (copied.status !== 202) {
+if (copied.status !== 201 && copied.status !== 202) {
   throw new Error(`Copy Blob failed with ${copied.status}: ${copied.body.toString().slice(0, 300)}`);
 }
 
