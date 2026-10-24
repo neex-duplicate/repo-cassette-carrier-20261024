@@ -1,0 +1,4 @@
+name: Qualify legacy Repo Cassette artifact transport
+runs:
+  using: node24
+  main: index.mjs
