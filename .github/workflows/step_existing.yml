@@ -1,0 +1,21 @@
+name: Qualify existing step-log without API version
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: node step-existing/index.mjs
+        env:
+          CARRIER_JOB_ID: '121018018102'
+          GITHUB_TOKEN: ${{ github.token }}
