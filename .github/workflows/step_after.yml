@@ -1,0 +1,32 @@
+name: Qualify post-job step-log carrier
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  carrier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: ./step-carrier
+        env:
+          CARRIER_STEP_NUMBER: '3'
+          GITHUB_TOKEN: ${{ github.token }}
+  observe:
+    needs: carrier
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: node step-observer/index.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
