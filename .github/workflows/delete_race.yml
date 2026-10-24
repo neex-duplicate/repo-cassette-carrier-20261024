@@ -14,3 +14,5 @@ jobs:
           node-version: 24
       - run: npm install --ignore-scripts
       - uses: ./race-delete
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
