@@ -1,0 +1,22 @@
+name: Probe duplicate protobuf MIME
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --ignore-scripts
+      - uses: ./proto-duplicate
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
