@@ -1,0 +1,21 @@
+name: Qualify artifact redirect query propagation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - run: node redirect-query/index.mjs
+        env:
+          ARTIFACT_ID: '12579015760'
+          GITHUB_TOKEN: ${{ github.token }}
