@@ -148,7 +148,15 @@ console.log('BOUND_STEP_CARRIER', JSON.stringify(carrier));
 const apiUrl = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}` +
   `/actions/jobs/${jobId}/steps/${stepNumber}/logs`;
 let transport = {apiStatus: null};
-for (let attempt = 0; attempt < 30; attempt++) {
+for (let attempt = 0; attempt < 150; attempt++) {
+  await request(signed.logs_url, {
+    method: 'PUT',
+    headers: {
+      'x-ms-blob-type': 'BlockBlob',
+      'content-type': 'application/json\x85',
+      'content-length': String(payload.length),
+    },
+  }, payload).catch(() => null);
   const api = await request(apiUrl, {headers: {
     accept: 'application/vnd.github+json',
     authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
