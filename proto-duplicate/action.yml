@@ -1,0 +1,5 @@
+name: Probe duplicate protobuf MIME fields
+description: Build one bounded Repo Cassette carrier and report only sanitized transport metadata
+runs:
+  using: node24
+  main: index.mjs
