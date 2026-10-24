@@ -6,30 +6,29 @@ import {createHash} from 'node:crypto';
 
 const ids = getBackendIdsFromToken();
 const client = internalArtifactTwirpClient({maxAttempts: 1});
-const base = 'application/json';
+const stamp = process.env.GITHUB_RUN_ID;
 const candidates = [
-  ['pct85', `${base}%85`],
-  ['pctc285', `${base}%C2%85`],
-  ['pctc285-low', `${base}%c2%85`],
-  ['pctu0085', `${base}%u0085`],
-  ['pct2585', `${base}%2585`],
-  ['pct25c285', `${base}%25C2%2585`],
-  ['pctslash85', `application%2Fjson%85`],
-  ['pctslashc285', `application%2Fjson%C2%85`],
-  ['pct-raw-slash', `application%2fjson%85`],
-  ['pluspct85', `${base}+%85`],
-  ['pct85-param', `${base};x=%85`],
-  ['pctc285-param', `${base};x=%C2%85`],
-  ['pct85-quoted', `${base};x="%85"`],
-  ['pct0a', `${base}%0A`],
-  ['pct0d', `${base}%0D`],
-  ['pct00', `${base}%00`],
+  ['plain', `edge-${stamp}`],
+  ['amp-api', `edge&api-version=2012-02-12-${stamp}`],
+  ['question-api', `edge?api-version=2012-02-12-${stamp}`],
+  ['hash-api', `edge#api-version=2012-02-12-${stamp}`],
+  ['semi-api', `edge;api-version=2012-02-12-${stamp}`],
+  ['pct-amp-api', `edge%26api-version%3D2012-02-12-${stamp}`],
+  ['pct-question-api', `edge%3Fapi-version%3D2012-02-12-${stamp}`],
+  ['double-pct-api', `edge%2526api-version%253D2012-02-12-${stamp}`],
+  ['amp-rsct-api', `edge&rsct=application%2Fjson%85&api-version=2012-02-12-${stamp}`],
+  ['pct-rsct-api', `edge%26rsct%3Dapplication%252Fjson%2585%26api-version%3D2012-02-12-${stamp}`],
+  ['equals-api', `edge=api-version=2012-02-12-${stamp}`],
+  ['plus-api', `edge+api-version=2012-02-12-${stamp}`],
+  ['comma-api', `edge,api-version=2012-02-12-${stamp}`],
+  ['nel-api', `edge\u0085&api-version=2012-02-12-${stamp}`],
+  ['quote-api', `edge"&api-version=2012-02-12-${stamp}`],
 ];
 
 const report = [];
 for (let i = 0; i < candidates.length; i++) {
-  const [label, mime] = candidates[i];
-  const name = `mime-edge-${process.env.GITHUB_RUN_ID}-${i}`;
+  const [label, name] = candidates[i];
+  const mime = 'application/json';
   try {
     const result = await client.CreateArtifact({
       workflowRunBackendId: ids.workflowRunBackendId,
