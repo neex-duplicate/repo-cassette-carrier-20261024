@@ -134,7 +134,7 @@ await rpc('CreateStepLogsMetadata', {
   line_count: 1,
 });
 
-console.log('BOUND_STEP_CARRIER', JSON.stringify({
+const carrier = {
   jobId,
   stepNumber,
   stepBackendId,
@@ -142,6 +142,45 @@ console.log('BOUND_STEP_CARRIER', JSON.stringify({
   payloadSha256: (await import('node:crypto')).createHash('sha256').update(payload).digest('hex'),
   payloadBytes: payload.length,
   uploadStatus: upload.status,
-}));
+};
+console.log('BOUND_STEP_CARRIER', JSON.stringify(carrier));
+
+const apiUrl = `https://api.github.com/repos/${process.env.GITHUB_REPOSITORY}` +
+  `/actions/jobs/${jobId}/steps/${stepNumber}/logs`;
+let transport = {apiStatus: null};
+for (let attempt = 0; attempt < 30; attempt++) {
+  const api = await request(apiUrl, {headers: {
+    accept: 'application/vnd.github+json',
+    authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
+    'user-agent': 'repo-cassette-step-carrier',
+    'x-github-api-version': '2022-11-28',
+  }});
+  transport = {apiStatus: api.status};
+  if (api.status === 302 && api.headers.location) {
+    const targetUrl = new URL(api.headers.location);
+    const target = await request(targetUrl, {headers: {
+      'user-agent': 'repo-cassette-step-carrier',
+    }});
+    transport = {
+      apiStatus: api.status,
+      targetHost: targetUrl.host,
+      targetPathSuffix: targetUrl.pathname.split('/').at(-1),
+      rsct: targetUrl.searchParams.get('rsct'),
+      targetStatus: target.status,
+      contentType: target.headers['content-type'] || null,
+      contentTypeHex: Buffer.from(target.headers['content-type'] || '', 'latin1').toString('hex'),
+      bodyBytes: target.body.length,
+      bodyMatches: target.body.equals(payload),
+    };
+    if (target.status === 200 && target.body.equals(payload)) break;
+  }
+  await new Promise(resolve => setTimeout(resolve, 200));
+}
+
+if (process.env.GITHUB_STEP_SUMMARY) {
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+    '### Repo Cassette live step transport\n\n```json\n' +
+    JSON.stringify({...carrier, transport}, null, 2) + '\n```\n');
+}
 
 await new Promise(resolve => setTimeout(resolve, 3000));
