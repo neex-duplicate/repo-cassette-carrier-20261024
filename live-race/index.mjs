@@ -20,13 +20,17 @@ function payload(artifactId) {
 }
 
 async function create(name, version, mime) {
-  return client.CreateArtifact({
+  const result = await client.CreateArtifact({
     workflowRunBackendId: ids.workflowRunBackendId,
     workflowJobRunBackendId: ids.workflowJobRunBackendId,
     name,
     version,
     mimeType: StringValue.create({value: mime}),
   });
+  if (!result.ok || !result.signedUploadUrl) {
+    throw new Error(`CreateArtifact v${version} returned no upload URL`);
+  }
+  return result;
 }
 
 async function upload(url, bytes) {
@@ -44,38 +48,14 @@ async function finalize(name, bytes) {
     size: String(bytes.length),
     hash: StringValue.create({value: `sha256:${hash}`}),
   });
+  if (!result.ok || !result.artifactId) {
+    throw new Error('FinalizeArtifact returned no artifact ID');
+  }
   return String(result.artifactId);
 }
 
-async function observe(artifactId) {
-  const url = `https://api.github.com/repos/${repositoryName}` +
-    `/actions/artifacts/${artifactId}/zip`;
-  const seen = new Set();
-  for (let attempt = 0; attempt < 10; attempt++) {
-    const response = await fetch(url, {redirect: 'manual', headers: {
-      accept: 'application/vnd.github.v3+json',
-      authorization: `Bearer ${process.env.GITHUB_TOKEN}`,
-      'user-agent': 'repo-cassette-live-race-observer',
-    }});
-    const location = response.headers.get('location');
-    if (location) {
-      const target = new URL(location);
-      const state = JSON.stringify({
-        status: response.status,
-        extension: target.pathname.split('.').at(-1),
-        rsctHex: Buffer.from(target.searchParams.get('rsct') || '', 'latin1').toString('hex'),
-      });
-      seen.add(state);
-    } else {
-      seen.add(JSON.stringify({status: response.status}));
-    }
-    await new Promise(resolve => setTimeout(resolve, 20));
-  }
-  return [...seen].map(value => JSON.parse(value));
-}
-
 const results = [];
-for (let index = 0; index < 32; index++) {
+for (let index = 0; index < 64; index++) {
   const name = `cassette-live-${index}-${Date.now()}`;
   const reverse = index % 2 === 1;
   const specs = reverse
@@ -86,11 +66,24 @@ for (let index = 0; index < 32; index++) {
       create(name, version, mime)));
     const placeholder = Buffer.from('{"probe":"placeholder"}');
     await Promise.all(created.map(item => upload(item.signedUploadUrl, placeholder)));
-    const artifactId = await finalize(name, placeholder);
+    // Match the solve-correlated primitive exactly: race two finalizations and
+    // do not inspect the REST artifact before replacing the signed blobs.
+    const finalized = await Promise.allSettled([
+      finalize(name, placeholder),
+      finalize(name, placeholder),
+    ]);
+    const artifactIds = [...new Set(finalized
+      .filter(result => result.status === 'fulfilled')
+      .map(result => result.value))];
+    if (!artifactIds.length) throw new Error('Both FinalizeArtifact calls failed');
+
+    for (const artifactId of artifactIds) {
+      const body = payload(artifactId);
+      await Promise.all(created.map(item => upload(item.signedUploadUrl, body)));
+    }
+    const artifactId = artifactIds.at(-1);
     const body = payload(artifactId);
-    await Promise.all(created.map(item => upload(item.signedUploadUrl, body)));
-    const states = await observe(artifactId);
-    const result = {index, name, artifactId, reverse, states,
+    const result = {index, name, artifactId, artifactIds, reverse,
       bodySha256: createHash('sha256').update(body).digest('hex')};
     results.push(result);
     console.log('LIVE_RACE_ITEM', JSON.stringify(result));
